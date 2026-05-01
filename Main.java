@@ -11,7 +11,7 @@ public class Main {
             Lexer lexer = new Lexer(source);
             List<Token> tokens = lexer.tokenize();
 
-            System.out.println("===== REVIEW 1: TOKENS =====");
+            System.out.println("===== REVIEW 2: TOKENS =====");
             for (Token token : tokens) {
                 System.out.println(token);
             }
@@ -19,25 +19,26 @@ public class Main {
             Parser parser = new Parser(tokens);
             ASTNode program = parser.parseProgram();
 
-            System.out.println("\n===== REVIEW 1: PARSER RESULT =====");
+            System.out.println("\n===== REVIEW 2: PARSER RESULT =====");
             System.out.println("Total statements parsed: " + program.statements.size());
 
             SymbolTable symbolTable = parser.getSymbolTable();
             symbolTable.printTable();
 
-            System.out.println("\n===== REVIEW 1 RESULT =====");
-
             if (lexer.hasError() || parser.hasError || symbolTable.hasError) {
-                System.out.println("Review 1 has errors.");
-            } else {
-                System.out.println("Lexer tokenizes source code correctly.");
-                System.out.println("Parser handles valid input.");
-                System.out.println("Symbol table is working.");
-                System.out.println("Type checking is working.");
-                System.out.println("Assignments are working.");
-                System.out.println("Arithmetic expressions are working.");
-                System.out.println("Review 1 completed successfully.");
+                System.out.println("\nReview 2 has errors. Code generation stopped.");
+                return;
             }
+
+            CodeGenerator generator = new CodeGenerator(symbolTable);
+            String javaCode = generator.generate(program);
+
+            Files.writeString(Path.of("ShobujOutput.java"), javaCode);
+
+            System.out.println("\n===== REVIEW 2: GENERATED JAVA CODE =====");
+            System.out.println(javaCode);
+
+            System.out.println("Generated file: ShobujOutput.java");
 
         } catch (Exception e) {
             System.err.println("Compiler error: " + e.getMessage());
