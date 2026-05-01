@@ -34,9 +34,7 @@ public class Parser {
 
     private boolean checkAny(TokenType... types) {
         for (TokenType type : types) {
-            if (peek().type == type) {
-                return true;
-            }
+            if (peek().type == type) return true;
         }
         return false;
     }
@@ -54,11 +52,9 @@ public class Parser {
 
         while (!check(TokenType.EOF)) {
             ASTNode statement = parseStatement();
-
             if (statement != null) {
                 program.statements.add(statement);
             }
-
             skipNewlines();
         }
 
@@ -72,6 +68,14 @@ public class Parser {
 
         if (check(TokenType.DEKHAO)) {
             return parsePrint();
+        }
+
+        if (check(TokenType.JODI)) {
+            return parseIf();
+        }
+
+        if (check(TokenType.JOTOKKHON)) {
+            return parseWhile();
         }
 
         if (check(TokenType.IDENTIFIER) && peekAt(1).type == TokenType.ASSIGN) {
@@ -96,7 +100,6 @@ public class Parser {
         expect(TokenType.ASSIGN);
 
         ASTNode expression = parseExpression();
-
         String expressionType = inferType(expression);
 
         if (expressionType != null && !dataType.equals(expressionType)) {
@@ -109,7 +112,6 @@ public class Parser {
         ASTNode node = new ASTNode(ASTNode.NodeType.DECL, nameToken.value);
         node.dataType = dataType;
         node.right = expression;
-
         return node;
     }
 
@@ -133,7 +135,6 @@ public class Parser {
 
         ASTNode node = new ASTNode(ASTNode.NodeType.ASSIGN, nameToken.value);
         node.right = expression;
-
         return node;
     }
 
@@ -142,6 +143,93 @@ public class Parser {
 
         ASTNode node = new ASTNode(ASTNode.NodeType.PRINT);
         node.right = parseExpression();
+
+        return node;
+    }
+
+    private ASTNode parseIf() {
+        consume(); // যদি
+
+        ASTNode condition = parseCondition();
+
+        expect(TokenType.TAHOLE);
+        skipNewlines();
+
+        ASTNode node = new ASTNode(ASTNode.NodeType.IF);
+        node.condition = condition;
+
+        while (!checkAny(TokenType.NAHLE, TokenType.SESH, TokenType.EOF)) {
+            ASTNode statement = parseStatement();
+
+            if (statement != null) {
+                node.thenBody.add(statement);
+            }
+
+            skipNewlines();
+        }
+
+        if (check(TokenType.NAHLE)) {
+            consume();
+            skipNewlines();
+
+            while (!checkAny(TokenType.SESH, TokenType.EOF)) {
+                ASTNode statement = parseStatement();
+
+                if (statement != null) {
+                    node.elseBody.add(statement);
+                }
+
+                skipNewlines();
+            }
+        }
+
+        expect(TokenType.SESH);
+
+        return node;
+    }
+
+    private ASTNode parseWhile() {
+        consume(); // যতক্ষণ
+
+        ASTNode condition = parseCondition();
+
+        expect(TokenType.TAHOLE);
+        skipNewlines();
+
+        ASTNode node = new ASTNode(ASTNode.NodeType.WHILE);
+        node.condition = condition;
+
+        while (!checkAny(TokenType.SESH, TokenType.EOF)) {
+            ASTNode statement = parseStatement();
+
+            if (statement != null) {
+                node.loopBody.add(statement);
+            }
+
+            skipNewlines();
+        }
+
+        expect(TokenType.SESH);
+
+        return node;
+    }
+
+    private ASTNode parseCondition() {
+        ASTNode left = parseExpression();
+
+        if (!checkAny(TokenType.GREATER, TokenType.LESS,
+                TokenType.GREATER_EQ, TokenType.LESS_EQ,
+                TokenType.EQUALS, TokenType.NOT_EQUALS)) {
+            syntaxError("Comparison operator expected in condition");
+            return left;
+        }
+
+        Token operator = consume();
+        ASTNode right = parseExpression();
+
+        ASTNode node = new ASTNode(ASTNode.NodeType.BINOP, operator.value);
+        node.left = left;
+        node.right = right;
 
         return node;
     }
@@ -209,9 +297,7 @@ public class Parser {
     }
 
     private String inferType(ASTNode node) {
-        if (node == null) {
-            return null;
-        }
+        if (node == null) return null;
 
         return switch (node.nodeType) {
             case NUMBER -> "সংখ্যা";
